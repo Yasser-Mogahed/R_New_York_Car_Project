@@ -18,7 +18,6 @@
 
 <br>
 
-> *Add a screenshot or a short GIF of the landing page here — the night skyline, the two-way street traffic, the taxi meter valuation card. It's the single most convincing thing in this repo; lead with it.*
 
 ---
 
