@@ -204,11 +204,8 @@ This project was built by a team of four for a university data science course, c
 - [ ] Historical price-trend forecasting beyond the current partial-dependence view
 - [ ] Export a PDF valuation report from the AI Predictor
 
----
 
-## 📄 License
 
-*Add your chosen license here (MIT is a common, permissive default for academic projects).*
 
 ---
 
