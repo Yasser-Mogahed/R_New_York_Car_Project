@@ -15,7 +15,7 @@
 
 ![NYC Car Market — animated landing page](nyc_landing_demo.gif)
 
-‪nyc_landing_demo
+*The landing page, captured live from the actual running dashboard — real CSS-drawn skyline, a genuinely cycling traffic light, hand-drawn SVG taxis driving their own lanes, not a video, not a stock photo.*
 
 <br>
 
