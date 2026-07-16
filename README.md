@@ -15,7 +15,7 @@
 
 ![NYC Car Market — animated landing page](nyc_landing_demo.gif)
 
-*The landing page, captured live from the actual running dashboard — real CSS-drawn skyline, a genuinely cycling traffic light, hand-drawn SVG taxis driving their own lanes, not a video, not a stock photo.*
+
 
 <br>
 
@@ -266,8 +266,8 @@ Built by a team of four for a university data science course — statistical rig
 |---|---|
 | **Yasser Mogahed** — *Team Lead* | End-to-end Shiny dashboard design & development — UI/UX, data visualization, the AI Price Predictor, and every interactive system in Metro Fleet |
 | Ahmed Walid | Data cleaning & preprocessing |
-| Mohanad & Abdallah | Exploratory data analysis |
-| Bassem & Ahmed Mahmoud ("Bebo") | Regression modeling & the Random Forest predictor |
+| Mohanad Ibrahim | Exploratory data analysis & Regression modeling & the Random Forest predictor |
+| Abdallah Ali | Simulation |
 
 > *Five names are credited by section in the analysis notebook alongside the dashboard lead. If your final roster is exactly four, trim this table to match — don't leave a name in that shouldn't be there, or drop one that should.*
 
@@ -280,11 +280,8 @@ Built by a team of four for a university data science course — statistical rig
 - [ ] Multi-year forecasting beyond the current partial-dependence view
 - [ ] One-click PDF valuation report export from the AI Predictor
 
----
 
-## 📄 License
 
-*Add your chosen license here — MIT is a common, permissive default for academic projects.*
 
 ---
 
