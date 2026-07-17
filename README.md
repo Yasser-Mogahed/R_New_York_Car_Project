@@ -269,7 +269,6 @@ Built by a team of four for a university data science course — statistical rig
 | Mohanad Ibrahim | Exploratory data analysis & Regression modeling & the Random Forest predictor |
 | Abdallah Ali | Simulation |
 
-> *Five names are credited by section in the analysis notebook alongside the dashboard lead. If your final roster is exactly four, trim this table to match — don't leave a name in that shouldn't be there, or drop one that should.*
 
 ---
 
