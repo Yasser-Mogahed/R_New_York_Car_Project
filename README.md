@@ -35,8 +35,6 @@
 
 </div>
 
-![divider](nyc_readme_divider.png)
-
 </div>
 
 ![divider](nyc_readme_divider.png)
@@ -275,7 +273,7 @@ Built by a team of four for a university data science course — statistical rig
 | Mohanad & Abdallah | Exploratory data analysis |
 | Bassem & Ahmed Mahmoud ("Bebo") | Regression modeling & the Random Forest predictor |
 
-> *Five names are credited by section in the analysis notebook alongside the dashboard lead. If your final roster is exactly four, trim this table to match — don't leave a name in that shouldn't be there, or drop one that should.*
+
 
 ![divider](nyc_readme_divider.png)
 
