@@ -1,15 +1,14 @@
 <div align="center">
 
-# 🚕 NYC CAR MARKET
-### *Metro Fleet Edition*
+![NYC Car Market — Metro Fleet](nyc_readme_header.svg)
 
 **174,858 raw listings. One night-lit city. A car price, delivered by AI in under a second.**
 
-![R](https://img.shields.io/badge/R-276DC3?style=for-the-badge&logo=r&logoColor=white)
-![Shiny](https://img.shields.io/badge/Shiny-0C4C8A?style=for-the-badge&logo=rstudio&logoColor=white)
-![Random Forest](https://img.shields.io/badge/Model-Random%20Forest-2E8B57?style=for-the-badge)
-![Plotly](https://img.shields.io/badge/Viz-Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Live-F5C518?style=for-the-badge)
+![R](https://img.shields.io/badge/R-0A0A0C?style=for-the-badge&logo=r&logoColor=F5C518)
+![Shiny](https://img.shields.io/badge/Shiny-0A0A0C?style=for-the-badge&logo=rstudio&logoColor=00E5FF)
+![Random Forest](https://img.shields.io/badge/Model-Random%20Forest-0A0A0C?style=for-the-badge&labelColor=0A0A0C&color=F5C518)
+![Plotly](https://img.shields.io/badge/Viz-Plotly-0A0A0C?style=for-the-badge&logo=plotly&logoColor=00E5FF)
+![Status](https://img.shields.io/badge/Status-Live-F5C518?style=for-the-badge&labelColor=0A0A0C)
 
 <br>
 
@@ -23,7 +22,9 @@
 
 </div>
 
----
+<br>
+
+![divider](nyc_readme_divider.png)
 
 <div align="center">
 
@@ -35,7 +36,10 @@
 
 </div>
 
----
+
+</div>
+
+![divider](nyc_readme_divider.png)
 
 ## 📍 Overview
 
@@ -49,7 +53,7 @@ Two things had to be true for that to work:
 >
 > 🎛️ **The dashboard had to be trustworthy, not just pretty.** The AI Price Predictor validates its own accuracy live, on every launch, and physically cannot accept an input the model wasn't trained to handle — see the reliability breakdown in the AI Price Predictor section below.
 
----
+![divider](nyc_readme_divider.png)
 
 ## ✨ The Dashboard — "Metro Fleet"
 
@@ -105,7 +109,7 @@ This page was built to be the most *reliable* part of the entire project — not
 
 The valuation itself doesn't live in a plain number box. It lives inside a **working taxi meter** — LED-red glowing digits inside a black meter housing — because a generic input field didn't feel like it belonged in this dashboard.
 
----
+![divider](nyc_readme_divider.png)
 
 ## 🔬 The Data Science Pipeline
 
@@ -179,7 +183,7 @@ Fifty trees is the efficient stopping point — pushing to 100 trees doubles the
 
 </details>
 
----
+![divider](nyc_readme_divider.png)
 
 ## 🛠️ Tech Stack
 
@@ -194,7 +198,7 @@ Fifty trees is the efficient stopping point — pushing to 100 trees doubles the
 | Dashboard visualization | `plotly` |
 | Design | Hand-written CSS design system, inline SVG — zero external image/video assets |
 
----
+![divider](nyc_readme_divider.png)
 
 ## 📂 Project Structure
 
@@ -206,10 +210,13 @@ R_New_York_Car_Project/
 ├── R_New_York_Car_Project.ipynb   # Full analysis notebook (cleaning → EDA → modeling → simulation)
 ├── nyc_car_market_dashboard.R     # The Metro Fleet Shiny dashboard
 ├── nyc_landing_demo.gif           # Landing page demo (this README)
+├── nyc_readme_header.svg          # Animated README header (glowing title + driving taxi)
+├── nyc_readme_footer.svg          # Animated README footer
+├── nyc_readme_divider.png         # README section divider graphic
 └── README.md
 ```
 
----
+![divider](nyc_readme_divider.png)
 
 ## 🚀 Getting Started
 
@@ -238,7 +245,7 @@ shiny::runApp("nyc_car_market_dashboard.R")
 
 Open `R_New_York_Car_Project.ipynb` in Jupyter (R kernel) or RStudio to walk through the full cleaning → EDA → modeling → simulation pipeline.
 
----
+![divider](nyc_readme_divider.png)
 
 ## 📈 Model Performance
 
@@ -256,7 +263,7 @@ The deployed AI Price Predictor reports its own accuracy live, computed via out-
 
 *(The 93.1%-variance research model in the notebook was trained offline on the full cleaned dataset with 100 trees. The dashboard's live model is a separately tuned, self-validating instance built for interactive deployment — see "Why 50 trees, specifically" above for the benchmark behind that choice.)*
 
----
+![divider](nyc_readme_divider.png)
 
 ## 👥 Team
 
@@ -270,7 +277,8 @@ Built by a team of four for a university data science course — statistical rig
 | Abdallah Ali | Simulation |
 
 
----
+
+![divider](nyc_readme_divider.png)
 
 ## 🗺️ Roadmap
 
@@ -279,13 +287,11 @@ Built by a team of four for a university data science course — statistical rig
 - [ ] Multi-year forecasting beyond the current partial-dependence view
 - [ ] One-click PDF valuation report export from the AI Predictor
 
+![divider](nyc_readme_divider.png)
 
-
-
----
 
 <div align="center">
 
-**Built with R, Shiny, and an unreasonable amount of care for what New York City looks like at 2 a.m.**
+![NYC Car Market — footer](nyc_readme_footer.svg)
 
 </div>

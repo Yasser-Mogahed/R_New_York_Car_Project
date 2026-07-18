@@ -1,0 +1,72 @@
+<svg width="1400" height="320" viewBox="0 0 1400 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A0A0C"/>
+      <stop offset="50%" stop-color="#15161C"/>
+      <stop offset="100%" stop-color="#0A0A0C"/>
+    </linearGradient>
+    <linearGradient id="roadGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1C1D21"/>
+      <stop offset="100%" stop-color="#0A0A0B"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- background panel, wave-cut bottom edge -->
+  <path d="M0,0 L1400,0 L1400,250 Q700,300 0,240 Z" fill="url(#bgGrad)"/>
+
+  <!-- twinkling stars -->
+  <circle cx="120" cy="50" r="2" fill="#F5F3E7"><animate attributeName="opacity" values="1;0.2;1" dur="2.3s" repeatCount="indefinite"/></circle>
+  <circle cx="260" cy="90" r="1.5" fill="#F5F3E7"><animate attributeName="opacity" values="0.3;1;0.3" dur="3.1s" repeatCount="indefinite"/></circle>
+  <circle cx="1180" cy="60" r="2" fill="#F5F3E7"><animate attributeName="opacity" values="1;0.2;1" dur="2.7s" repeatCount="indefinite"/></circle>
+  <circle cx="1300" cy="100" r="1.5" fill="#F5F3E7"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.9s" repeatCount="indefinite"/></circle>
+  <circle cx="700" cy="40" r="1.5" fill="#F5F3E7"><animate attributeName="opacity" values="1;0.3;1" dur="2.5s" repeatCount="indefinite"/></circle>
+  <circle cx="440" cy="75" r="1.5" fill="#F5F3E7"><animate attributeName="opacity" values="0.5;1;0.5" dur="2.1s" repeatCount="indefinite"/></circle>
+  <circle cx="960" cy="55" r="1.8" fill="#F5F3E7"><animate attributeName="opacity" values="1;0.25;1" dur="2.9s" repeatCount="indefinite"/></circle>
+
+  <!-- title with pulsing glow -->
+  <text x="700" y="140" font-family="Arial Black, Arial, sans-serif" font-size="64" font-weight="900" fill="#F5C518" text-anchor="middle" filter="url(#glow)">
+    NYC CAR MARKET
+    <animate attributeName="opacity" values="0.85;1;0.85" dur="2.4s" repeatCount="indefinite"/>
+  </text>
+  <text x="700" y="180" font-family="Courier New, monospace" font-size="20" letter-spacing="4" fill="#00E5FF" text-anchor="middle">METRO FLEET EDITION</text>
+
+  <!-- road strip with rolling dashed centerline -->
+  <rect x="0" y="270" width="1400" height="50" fill="url(#roadGrad)"/>
+  <g>
+    <rect x="-40" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="40" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="120" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="200" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="280" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="360" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="440" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="520" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="600" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="680" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="760" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="840" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="920" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="1000" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="1080" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="1160" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="1240" y="293" width="30" height="3" fill="#F5C518"/>
+    <rect x="1320" y="293" width="30" height="3" fill="#F5C518"/>
+    <animateTransform attributeName="transform" type="translate" from="0,0" to="80,0" dur="1s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- taxi driving across the road -->
+  <g filter="url(#glow)">
+    <path d="M0,-15 L3,-29.5 L7.5,-36 L13.5,-45 L33,-45 L39,-36 L43.5,-29.5 L46.5,-15 Z" fill="#F5C518" stroke="#0A0A0C" stroke-width="0.8"/>
+    <circle cx="11.25" cy="-15" r="3.75" fill="#0A0A0C"/>
+    <circle cx="37.5" cy="-15" r="3.75" fill="#0A0A0C"/>
+    <circle cx="45" cy="-24" r="1.5" fill="#FFF6DA"/>
+    <animateMotion path="M-60,296 L1460,296" dur="7s" repeatCount="indefinite"/>
+  </g>
+</svg>

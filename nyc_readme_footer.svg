@@ -1,0 +1,37 @@
+<svg width="1400" height="160" viewBox="0 0 1400 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradF" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A0A0C"/>
+      <stop offset="50%" stop-color="#15161C"/>
+      <stop offset="100%" stop-color="#0A0A0C"/>
+    </linearGradient>
+    <filter id="glowF" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- background panel, wave-cut top edge (mirrors the header) -->
+  <path d="M0,160 L1400,160 L1400,30 Q700,-20 0,40 Z" fill="url(#bgGradF)"/>
+
+  <!-- a few quiet stars -->
+  <circle cx="150" cy="55" r="1.5" fill="#F5F3E7"><animate attributeName="opacity" values="1;0.3;1" dur="2.6s" repeatCount="indefinite"/></circle>
+  <circle cx="1250" cy="50" r="1.5" fill="#F5F3E7"><animate attributeName="opacity" values="0.4;1;0.4" dur="3.2s" repeatCount="indefinite"/></circle>
+
+  <!-- taxi driving across, smaller and quieter than the header -->
+  <g filter="url(#glowF)" opacity="0.9">
+    <path d="M0,-10 L2,-19.5 L5,-24 L9,-30 L22,-30 L26,-24 L29,-19.5 L31,-10 Z" fill="#F5C518" stroke="#0A0A0C" stroke-width="0.6"/>
+    <circle cx="7.5" cy="-10" r="2.5" fill="#0A0A0C"/>
+    <circle cx="25" cy="-10" r="2.5" fill="#0A0A0C"/>
+    <animateMotion path="M-40,110 L1440,110" dur="9s" repeatCount="indefinite"/>
+  </g>
+
+  <!-- signature line with pulsing taxi-yellow glow -->
+  <text x="700" y="100" font-family="Courier New, monospace" font-size="18" letter-spacing="1" fill="#B7B8BD" text-anchor="middle">
+    Built with <tspan fill="#F5C518" filter="url(#glowF)">🚕</tspan> by the <tspan fill="#F5C518">Metro Fleet</tspan> team &#183; Powered by R, Shiny &amp; Random Forest
+    <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite"/>
+  </text>
+</svg>
