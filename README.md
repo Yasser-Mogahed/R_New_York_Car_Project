@@ -1,6 +1,6 @@
 <div align="center">
 
-![NYC Car Market — Metro Fleet](nyc_readme_banner.png)
+![NYC Car Market — Metro Fleet](nyc_readme_header.svg)
 
 **174,858 raw listings. One night-lit city. A car price, delivered by AI in under a second.**
 
@@ -14,6 +14,7 @@
 
 ![NYC Car Market — animated landing page](nyc_landing_demo.gif)
 
+*The landing page, captured live from the actual running dashboard at 12fps — real CSS-drawn skyline, a genuinely cycling traffic light, hand-drawn SVG taxis driving their own lanes. Not a video. Not a stock photo.*
 
 <br>
 
@@ -34,6 +35,8 @@
 | listings analyzed | engineered features | variance explained (RF) | mean absolute error | dashboard tabs | data-quality bug caught & fixed |
 
 </div>
+
+![divider](nyc_readme_divider.png)
 
 </div>
 
@@ -208,7 +211,8 @@ R_New_York_Car_Project/
 ├── R_New_York_Car_Project.ipynb   # Full analysis notebook (cleaning → EDA → modeling → simulation)
 ├── nyc_car_market_dashboard.R     # The Metro Fleet Shiny dashboard
 ├── nyc_landing_demo.gif           # Landing page demo (this README)
-├── nyc_readme_banner.png          # README title banner
+├── nyc_readme_header.svg          # Animated README header (glowing title + driving taxi)
+├── nyc_readme_footer.svg          # Animated README footer
 ├── nyc_readme_divider.png         # README section divider graphic
 └── README.md
 ```
@@ -273,7 +277,7 @@ Built by a team of four for a university data science course — statistical rig
 | Mohanad & Abdallah | Exploratory data analysis |
 | Bassem & Ahmed Mahmoud ("Bebo") | Regression modeling & the Random Forest predictor |
 
-
+> *Five names are credited by section in the analysis notebook alongside the dashboard lead. If your final roster is exactly four, trim this table to match — don't leave a name in that shouldn't be there, or drop one that should.*
 
 ![divider](nyc_readme_divider.png)
 
@@ -284,13 +288,14 @@ Built by a team of four for a university data science course — statistical rig
 - [ ] Multi-year forecasting beyond the current partial-dependence view
 - [ ] One-click PDF valuation report export from the AI Predictor
 
-
-
-
 ![divider](nyc_readme_divider.png)
+
+## 📄 License
+
+*Add your chosen license here — MIT is a common, permissive default for academic projects.*
 
 <div align="center">
 
-**Built with R, Shiny, and an unreasonable amount of care for what New York City looks like at 2 a.m.**
+![NYC Car Market — footer](nyc_readme_footer.svg)
 
 </div>
