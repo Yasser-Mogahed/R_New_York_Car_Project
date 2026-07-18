@@ -14,7 +14,6 @@
 
 ![NYC Car Market — animated landing page](nyc_landing_demo.gif)
 
-*The landing page, captured live from the actual running dashboard at 12fps — real CSS-drawn skyline, a genuinely cycling traffic light, hand-drawn SVG taxis driving their own lanes. Not a video. Not a stock photo.*
 
 <br>
 
@@ -287,11 +286,8 @@ Built by a team of four for a university data science course — statistical rig
 - [ ] Multi-year forecasting beyond the current partial-dependence view
 - [ ] One-click PDF valuation report export from the AI Predictor
 
-![divider](nyc_readme_divider.png)
 
-## 📄 License
 
-*Add your chosen license here — MIT is a common, permissive default for academic projects.*
 
 ![divider](nyc_readme_divider.png)
 
