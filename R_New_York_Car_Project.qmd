@@ -1,0 +1,2119 @@
+---
+title: Loading packages
+jupyter:
+  kernelspec:
+    display_name: R
+    name: ir
+    language: R
+---
+
+```{r}
+library(tidyverse)
+install.packages("GGally")
+library(GGally)
+library(readr)
+library(stringr)
+install.packages("modeest")
+library(modeest)
+install.packages("gridExtra")
+library(grid)
+library(gridExtra)
+install.packages("ggthemes")
+library(ggthemes)
+install.packages("shiny")
+library(shiny)
+install.packages("ggcorrplot")
+library(ggcorrplot)
+install.packages("car")
+library(car)
+install.packages("ggfortify")
+library(ggfortify)
+install.packages("randomForest")
+library(randomForest)
+library(scales)
+install.packages("fastDummies")
+library(fastDummies)
+install.packages("caret")
+library(caret)
+install.packages("remotes")
+remotes::install_github("ltorgo/DMwR2", ref = "develop")
+install.packages("DMwR2")
+library(DMwR2)
+install.packages("mice")
+library(mice)
+library(reshape2)
+install.packages("readr")
+library(readr)
+```
+
+# Loading data
+
+```{r}
+Car_df = read_csv("https://raw.githubusercontent.com/NitoBoritto/R_New_York_Car_Project/main/New_York_cars.csv")
+Car_rates = read_csv("https://raw.githubusercontent.com/NitoBoritto/R_New_York_Car_Project/main/Car_Rates.csv")
+```
+
+```{r}
+Car_df %>% head(3)
+```
+
+```{r}
+Car_df %>% str()
+```
+
+```{r}
+Car_rates %>% head()
+```
+
+```{r}
+Car_rates %>% str()
+```
+
+# Preprocessing
+
+## Checking Duplicates
+
+```{r}
+Dups_Car = Car_df %>%
+  duplicated() %>%
+  sum()
+sprintf("Duplicates in Car dataset before: %d", Dups_Car)
+
+Dups_rate = Car_rates %>%
+  duplicated() %>%
+  sum()
+sprintf("Duplicates in Rate dataset: %d", Dups_rate)
+```
+
+```{r}
+# Deleting empty rows
+Car_df = Car_df %>% distinct()
+
+Dups_Car_00 = Car_df %>%
+  duplicated() %>%
+  sum()
+sprintf("Duplicates in Car dataset after: %d", Dups_Car_00)
+```
+
+## `name` Column
+
+No nulls
+
+```{r}
+name_nulls = Car_df$name %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", name_nulls)
+```
+
+```{r}
+Car_df$name %>% unique()
+```
+
+```{r}
+Car_rates$Car_name %>% unique()
+```
+
+```{r}
+Car_df = Car_df %>%
+  mutate(
+    # Step 1: Extract the primary model name from the Model column
+    Primary_Model = word(Model, 1), # Extracts the first word as the primary model
+    # Step 2 & 3: Combine Year, brand, and primary model name, then trim whitespace
+    Car_df_join_name = paste(as.character(Year), brand, Primary_Model, sep = " ") %>%
+                       str_trim(),
+    # Step 4: Append a single period at the end
+    Car_df_join_name = paste0(Car_df_join_name, ".")
+  )
+
+print("First few rows of Car_df with the new Car_df_join_name:")
+Car_df %>% select(name, Model, Car_df_join_name) %>% head()
+```
+
+```{r}
+Car_rates = Car_rates %>%
+  mutate(
+    Car_name_cleaned = Car_name %>%
+                       str_replace_all(" +", " ") %>% # Replace multiple spaces with single space
+                       str_trim() %>% # Trim leading/trailing whitespace
+                       str_replace("\\.$|^$", "") %>% # Remove any existing period at the end
+                       paste0(".") # Append a single period at the end
+  )
+
+# Display the original Car_name and the new Car_name_cleaned for verification
+print("First few rows of Car_rates with the original and cleaned Car_name:")
+Car_rates %>%
+  select(Car_name, Car_name_cleaned) %>%
+  head()
+```
+
+```{r}
+Car_df_merged = Car_df %>%
+  left_join(Car_rates, by = c("Car_df_join_name" = "Car_name_cleaned"), suffix = c("_car", "_rate"))
+
+Car_df_merged = Car_df_merged %>%
+  select(
+    -Year_rate, -Brand, -Model_rate, -Car_name, # Columns from Car_rates to remove
+    -name, # Intermediate columns from Car_df (Primary_Model not suffixed as no conflict)
+    -`Interior color`, -`Exterior color`, -Convenience, -Entertainment, # Other Car_df columns to remove (not suffixed)
+    -Exterior, -Safety, -Seating
+  ) %>%
+  rename(
+    Year = Year_car, # Rename Year from Car_df (suffixed as Year_car) back to Year
+    Model = Model_car, # Rename Model from Car_df (suffixed as Model_car) back to Model
+    name = Car_df_join_name
+  )
+
+Car_df_merged %>% head()
+
+print("Dimensions of the merged DataFrame:")
+Car_df_merged %>% dim()
+```
+
+## `brand` Column
+
+No nulls
+
+```{r}
+brand_nulls = Car_df_merged$brand %>%
+  is.na %>%
+  sum()
+
+sprintf("Nulls: %d", brand_nulls)
+```
+
+```{r}
+brand_unique = Car_df_merged$brand %>%
+  unique() %>%
+  length()
+cat("There are", brand_unique, "brands of cars in NY")
+```
+
+```{r}
+Column_names = Car_df_merged %>% colnames()
+
+Car_df_merged %>%
+  semi_join(Car_rates, by = c("brand" = "Brand")) %>%
+  count()
+```
+
+Checking data inconsistency between 2 tables
+
+```{r}
+print('Brands in Car_df not matching Car_rates (anti_join):')
+Car_df_merged %>%
+  anti_join(Car_rates, by = c("brand" = "Brand")) %>%
+  pull(brand) %>%
+  unique()
+```
+
+```{r}
+print('Brands in Car_rates not matching Car_df (anti_join):')
+Car_rates %>%
+  anti_join(Car_df_merged, by = c("Brand" = "brand")) %>%
+  pull(Brand) %>%
+  unique()
+```
+
+```{r}
+# Unifying brand names
+Car_df_merged = Car_df_merged %>%
+  mutate(brand = str_replace_all(brand,
+                  c("Bmw" = "BMW",
+                  "Gmc" = "GMC",
+                  "Infiniti" = "INFINITI",
+                  "Land_Rover" = "Land-Rover",
+                  "Mercedes_Benz" = "Mercedes-Benz",
+                  "Ram" = "RAM")))
+
+
+Car_rates = Car_rates %>%
+  mutate(Brand = str_replace(Brand, "Land", "Land-Rover"))
+```
+
+```{r}
+n_car = Car_df_merged %>%
+  semi_join(Car_rates, by = c("brand" = "Brand")) %>%
+  nrow()
+
+sprintf('Rows in Car_df matching Car_rates by brand: %d', n_car)
+```
+
+```{r}
+n_rates = Car_rates %>%
+  semi_join(Car_df_merged, by = c("Brand" = "brand")) %>%
+  nrow()
+
+sprintf('Rows in Car_rates matching Car_df by brand: %d', n_rates)
+```
+
+## `new&used` Column
+
+No nulls
+
+```{r}
+new_used_nulls =Car_df_merged$`new&used` %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", new_used_nulls)
+```
+
+A ton of inconsistent data
+
+```{r}
+Car_df_merged$`new&used` %>% table()
+```
+
+```{r}
+# Setting up mode
+mode_val = mfv(Car_df_merged$`new&used`)
+
+# Imputation
+Car_df_merged = Car_df_merged %>%
+  mutate(`new&used` = ifelse(!`new&used` %in% c("Used", "New"), mode_val, `new&used`))
+
+new_used_vals = Car_df_merged$`new&used` %>% unique()
+cat("Column after impuration: [", paste(new_used_vals, collapse = ", "), "]")
+```
+
+## `money` column
+
+No nulls
+
+```{r}
+money_nulls = Car_df_merged$money %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", money_nulls)
+```
+
+```{r}
+options(repr.plot.width = 18, repr.plot.height = 10)
+
+theme_nito = theme(plot.title = element_text(hjust = 0.5, color = "darkgreen"),
+    text = element_text(family = "garamond", size = 14),
+	  rect = element_blank(),
+	  panel.grid = element_blank(),
+	  axis.line = element_line(color = "black"))
+
+
+money_charts = Car_df_merged %>%
+  ggplot(aes(money)) + theme_nito +
+  theme(axis.line.x = element_blank())
+
+raw_money = money_charts +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  labs(title = "Raw Money Distribution",
+     y = "Frequency",
+     x = "Money")
+
+
+logged_money = money_charts +
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  scale_x_log10() +
+  labs(title = "Logged Money Distribution",
+     y = "Frequency",
+     x = "Money")
+
+grid.arrange(raw_money, logged_money, ncol = 2,
+             top = textGrob("Spread of money vs logged money",
+                            gp = gpar(fontsize = 16, col = "blue", fontface = "bold")))
+```
+
+## `Drivetrain` column
+
+552 Nulls
+
+```{r}
+
+drive_nulls = Car_df_merged$Drivetrain %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", drive_nulls)
+```
+
+```{r}
+# Identifying unqiue vals
+drivetrain_vals = Car_df_merged$Drivetrain %>% unique()
+print(Car_df$Drivetrain %>% unique())
+
+Car_df_merged$Drivetrain %>% table()
+```
+
+```{r}
+mode_drive_train = mfv(Car_df_merged$Drivetrain)
+
+# Filtering for not null
+drivetrain_notnull = Car_df_merged$Drivetrain[] %>%
+  na.omit() %>%
+  unique()
+
+# Mode imputation
+Car_df_merged = Car_df_merged %>%
+  mutate(Drivetrain = ifelse(!Drivetrain %in% drivetrain_notnull, mode_drive_train, Drivetrain))
+
+Car_df_merged$Drivetrain %>% table()
+```
+
+## `Fuel type` column
+
+```{r}
+fuel_type_nulls = Car_df_merged$`Fuel type` %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", fuel_type_nulls)
+```
+
+```{r}
+print("Unique Fuel Types before encoding:")
+original_fuel_types = Car_df_merged$`Fuel type` %>%
+  unique()
+
+original_fuel_types %>% print()
+
+Car_df_merged$`Fuel type` %>% table()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  mutate(Fuel_type_encoded = case_when(
+    `Fuel type` == "Diesel" ~ 1,
+    `Fuel type` %in% c("Gasoline", "Gasolin") ~ 2,
+    `Fuel type` == "E85 Flex" ~ 3,
+    `Fuel type` == "Hybrid" ~ 4,
+    !is.na(`Fuel type`) ~ 0,
+    is.na(`Fuel type`) ~ NA_real_
+  ))
+
+print("Car_df_merged head with Fuel_type_encoded:")
+Car_df_merged %>% select(`Fuel type`, Fuel_type_encoded) %>% head()
+```
+
+```{r}
+fuel_encode_unique = Car_df_merged$Fuel_type_encoded %>%
+  unique() %>%
+  sort()
+cat("Unique values in Fuel_type_encoded after initial encoding: [",
+    paste(fuel_encode_unique, collapse = ", "), "]")
+
+
+na_count_encoded = Car_df_merged$Fuel_type_encoded %>%
+  is.na() %>%
+  sum()
+sprintf("Number of NA values in Fuel_type_encoded: %d", na_count_encoded)
+```
+
+```{r}
+# Prepare data for kNN imputation:
+# - Convert Fuel_type_encoded to factor for categorical imputation
+# - Convert Drivetrain to factor as it's a categorical predictor
+Car_df_for_imputation = Car_df_merged %>%
+  mutate(
+    Drivetrain = as.factor(Drivetrain),
+    Fuel_type_encoded = as.factor(as.character(Fuel_type_encoded)) # Convert to character then factor to preserve integer levels
+  ) %>%
+  select(money, Mileage, Year, Drivetrain, Fuel_type_encoded)
+
+set.seed(42)
+
+# Perform kNN imputation. Only Fuel_type_encoded has NAs among selected columns.
+imputed_data_full = knnImputation(Car_df_for_imputation, k = 5, meth = "median")
+
+# Update the original Car_df_merged with the imputed values
+Car_df_merged$Fuel_type_encoded = as.numeric(as.character(imputed_data_full$Fuel_type_encoded))
+
+
+na_count_after_imputation = Car_df_merged$Fuel_type_encoded %>%
+  is.na() %>%
+  sum()
+sprintf("Number of NA values in Fuel_type_encoded after KNN imputation: %d", na_count_after_imputation)
+
+unique_fuel_after_imputation = Car_df_merged$Fuel_type_encoded %>%
+  unique() %>%
+  sort()
+cat("Unique values in Fuel_type_encoded after KNN imputation: [",
+    paste(unique_fuel_after_imputation, collapse = ", "), "]")
+```
+
+```{r}
+# Decode the numerical values back to descriptive string labels
+Car_df_merged = Car_df_merged %>%
+  mutate(Fuel_type_decoded = case_when(
+    Fuel_type_encoded == 0 ~ "Other",
+    Fuel_type_encoded == 1 ~ "Diesel",
+    Fuel_type_encoded == 2 ~ "Gasoline",
+    Fuel_type_encoded == 3 ~ "E85 Flex",
+    Fuel_type_encoded == 4 ~ "Hybrid",
+  ))
+
+print("Car_df_merged head with Fuel_type_decoded:")
+Car_df_merged %>% select(`Fuel type`, Fuel_type_encoded, Fuel_type_decoded) %>% head()
+```
+
+```{r}
+print("Frequency table for Fuel_type_decoded:")
+Car_df_merged$Fuel_type_decoded %>% table()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  select(-Fuel_type_encoded, -`Fuel type`) %>%
+  rename(Fuel_type = Fuel_type_decoded)
+
+# Verify that the column has been removed
+print("Columns in Car_df_merged after removing Fuel_type_encoded:")
+Car_df_merged %>%
+  colnames() %>%
+  print()
+```
+
+## `Transmission` column
+
+755 nulls
+
+```{r}
+trans_nulls = Car_df_merged$Transmission %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", trans_nulls)
+```
+
+```{r}
+print("Unique Transmission Types before encoding:")
+Car_df_merged$Transmission %>%
+  unique()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  mutate(Transmission_encoded_temp = case_when(
+    str_detect(str_to_lower(Transmission), "manual") ~ 1,
+    str_detect(str_to_lower(Transmission), "automatic|auto|autostick|tiptronic|pdk|dct|geartronic|sportmatic|shiftronic") ~ 2,
+    str_detect(str_to_lower(Transmission), "variable|cvt|xtronic|lineartronic|ivt|ecvt") ~ 3,
+    !is.na(Transmission) ~ 0, # Map other non-NA strings to 0
+    is.na(Transmission) ~ NA_real_
+  ))
+
+print("Car_df_merged head with Transmission_encoded_temp:")
+Car_df_merged %>%
+  select(Transmission, Transmission_encoded_temp) %>%
+  head()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  mutate(Transmission_for_imputation = ifelse(
+    Transmission_encoded_temp == 0 | is.na(Transmission_encoded_temp),
+    NA_real_,
+    Transmission_encoded_temp
+  ))
+
+Car_df_merged %>%
+  select(Transmission, Transmission_encoded_temp, Transmission_for_imputation) %>%
+  head()
+
+print("Unique values in Transmission_for_imputation:")
+Car_df_merged$Transmission_for_imputation %>%
+  unique() %>%
+  sort()
+
+na_count_imputation = Car_df_merged$Transmission_for_imputation %>%
+  is.na() %>%
+  sum()
+sprintf("Number of NA values in Transmission_for_imputation: %d", na_count_imputation)
+```
+
+```{r}
+Car_df_for_transmission_imputation = Car_df_merged %>%
+  mutate(
+    Drivetrain = as.factor(Drivetrain),
+    Fuel_type = as.factor(Fuel_type),
+    Transmission_for_imputation = as.factor(as.character(Transmission_for_imputation))
+  ) %>%
+  select(money, Mileage, Year, Drivetrain, Fuel_type, Transmission_for_imputation)
+
+set.seed(42)
+
+imputed_transmission_data = knnImputation(Car_df_for_transmission_imputation, k = 5, meth = "median")
+
+Car_df_merged$Transmission_imputed = as.numeric(as.character(imputed_transmission_data$Transmission_for_imputation))
+
+na_count_after_imputation = Car_df_merged$Transmission_imputed %>%
+  is.na() %>%
+  sum()
+sprintf("Number of NA values in Transmission_imputed after KNN imputation: %d", na_count_after_imputation)
+
+unique_transmission_after_imputation = Car_df_merged$Transmission_imputed %>%
+  unique() %>%
+  sort()
+cat("Unique values in Transmission_imputed after KNN imputation: [",
+    paste(unique_transmission_after_imputation, collapse = ", "), "]")
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  mutate(Transmission_decoded = case_when(
+    Transmission_imputed == 1 ~ "Manual",
+    Transmission_imputed == 2 ~ "Automatic",
+    Transmission_imputed == 3 ~ "Variable",
+  ))
+
+print("Car_df_merged head with Transmission_imputed and Transmission_decoded:")
+Car_df_merged %>%
+  select(Transmission_imputed, Transmission_decoded) %>%
+  head()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  select(-Transmission, -Transmission_encoded_temp, -Transmission_for_imputation, -Transmission_imputed) %>%
+  rename(Transmission = Transmission_decoded)
+
+print("Columns in Car_df_merged after updating Transmission and removing intermediate columns:")
+Car_df_merged %>%
+  colnames() %>%
+  print()
+
+print("Frequency table for the updated Transmission column:")
+Car_df_merged$Transmission %>%
+  table()
+```
+
+## `Engine` column
+
+330 nulls
+
+```{r}
+engine_nulls = Car_df_merged$Engine %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", engine_nulls)
+```
+
+```{r}
+print("Unique values in the 'Engine' column:")
+Car_df$Engine %>% unique() %>% print()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  filter(!is.na(Engine))
+
+engine_nulls_after = Car_df_merged$Engine %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls in Engine column after removal: %d", engine_nulls_after)
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  mutate(
+    # Refine regex to capture Engine Size (e.g., 1.5L, 3.5L, 2.0 Liter)
+    Engine_Size = as.numeric(str_extract(`Engine`, "\\d+\\.\\d+(?=\\s*(L|Liter))|\\d+(?=\\s*(L|Liter))")),
+    # Extract Cylinder Configuration (e.g., I4, V6, H6, 4-Cylinder)
+    Cylinder_Configuration = case_when(
+      str_detect(`Engine`, "(?i)I-?3|3.?Cylinder") ~ "I3",
+      str_detect(`Engine`, "(?i)I-?4|4.?Cylinder") ~ "I4",
+      str_detect(`Engine`, "(?i)I-?5|5.?Cylinder") ~ "I5",
+      str_detect(`Engine`, "(?i)I-?6|6.?Cylinder") ~ "I6",
+      str_detect(`Engine`, "(?i)V-?6") ~ "V6",
+      str_detect(`Engine`, "(?i)V-?8") ~ "V8",
+      str_detect(`Engine`, "(?i)V-?10") ~ "V10",
+      str_detect(`Engine`, "(?i)V-?12") ~ "V12",
+      str_detect(`Engine`, "(?i)H-?4|Flat.?4") ~ "H4",
+      str_detect(`Engine`, "(?i)H-?6|Flat.?6") ~ "H6",
+      TRUE ~ "Other/Unknown"
+    )
+  )
+
+# Count missing values for new columns
+print("Missing values in new columns:")
+Car_df_merged %>%
+  summarise(
+    NA_Engine_Size = sum(is.na(Engine_Size)),
+    NA_Cylinder_Configuration = sum(is.na(Cylinder_Configuration))
+  ) %>% print()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  mutate(
+    Has_Turbo = ifelse(str_detect(str_to_lower(Engine), "turbo|twin turbo"), 1, 0),
+    Has_GDI = ifelse(str_detect(str_to_lower(Engine), "gdi|direct injection|pdi"), 1, 0),
+    Has_DOHC = ifelse(str_detect(str_to_lower(Engine), "dohc"), 1, 0),
+    Has_Supercharged = ifelse(str_detect(str_to_lower(Engine), "supercharged"), 1, 0)
+  )
+
+# Display the first few rows with the new columns
+print("Car_df_merged head with extracted engine technology indicators:")
+Car_df_merged %>%
+  select(Engine, Engine_Size, Cylinder_Configuration, Has_Turbo, Has_GDI, Has_DOHC, Has_Supercharged) %>%
+  head()
+
+# Count missing values for new columns
+print("Missing values in new technology columns:")
+Car_df_merged %>%
+  summarise(
+    NA_Has_Turbo = sum(is.na(Has_Turbo)),
+    NA_Has_GDI = sum(is.na(Has_GDI)),
+    NA_Has_DOHC = sum(is.na(Has_DOHC)),
+    NA_Has_Supercharged = sum(is.na(Has_Supercharged))
+  ) %>%
+  print()
+```
+
+```{r}
+Car_df_for_engine_imputation = Car_df_merged %>%
+  mutate(
+    Drivetrain = as.factor(Drivetrain),
+    Fuel_type = as.factor(Fuel_type),
+    Transmission = as.factor(Transmission),
+    Cylinder_Configuration = as.factor(Cylinder_Configuration)
+  ) %>%
+  select(money, Mileage, Year, Engine_Size, Drivetrain, Fuel_type, Transmission, Cylinder_Configuration)
+
+print("Structure of Car_df_for_engine_imputation:")
+Car_df_for_engine_imputation %>% str()
+
+n_nulls_engine_size = Car_df_for_engine_imputation %>%
+  filter(is.na(Engine_Size)) %>%
+  count() %>%
+  pull(n)
+sprintf("Row count of NA in Engine_Size: %d", n_nulls_engine_size)
+```
+
+```{r}
+set.seed(42)
+imputed_engine_data = knnImputation(Car_df_for_engine_imputation, k = 5, meth = "median")
+
+# Update the original Car_df_merged with the imputed values
+Car_df_merged$Engine_Size = imputed_engine_data$Engine_Size
+
+na_count_after_imputation = Car_df_merged$Engine_Size %>% is.na() %>% sum()
+sprintf("Number of NA values in Engine_Size after KNN imputation: %d", na_count_after_imputation)
+
+print("Car_df_merged head with imputed Engine_Size:")
+Car_df_merged %>% select(Engine_Size, Cylinder_Configuration) %>% head()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>% select(-Engine)
+
+print("Columns in Car_df_merged after removing the 'Engine' column:")
+Car_df_merged %>%
+  colnames() %>%
+  print()
+```
+
+## `Accidents or damage` column
+
+52164 nulls
+
+```{r}
+accidents_null = Car_df_merged$`Accidents or damage` %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", accidents_null)
+```
+
+```{r}
+Car_df_merged$`Accidents or damage` %>% table()
+```
+
+```{r}
+# Encoding accidents as 1, the rest 0
+Car_df_merged = Car_df_merged %>%
+  mutate(`Accidents or damage` = as.integer(ifelse(`Accidents or damage` == "None Reported" | is.na(`Accidents or damage`) , 0, 1)))
+
+print("After encoding and handling missing values:")
+Car_df_merged$`Accidents or damage` %>% table()
+```
+
+## `Clean Title`
+
+157340 nulls god damn
+
+```{r}
+clean_null = Car_df_merged$`Clean title` %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", clean_null)
+```
+
+```{r}
+Car_df$`Clean title` %>% table()
+```
+
+```{r}
+# Encoding clean title as 1, the rest 0
+Car_df_merged = Car_df_merged %>%
+  mutate(`Clean title` = as.integer(ifelse(`Clean title` == "No" | is.na(`Clean title`) , 0, 1)))
+
+print("After encoding and handling missing values:")
+Car_df_merged$`Clean title` %>% table()
+```
+
+## `1-owner vechile` column
+
+52799 nulls
+
+```{r}
+owner_null = Car_df_merged$`1-owner vehicle` %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", owner_null)
+```
+
+```{r}
+Car_df_merged$`1-owner vehicle` %>% table()
+```
+
+```{r}
+# Encoding 1-owner as 1, the rest 0
+Car_df_merged = Car_df_merged %>%
+  mutate(`1-owner vehicle` = as.integer(ifelse(`1-owner vehicle` == "No" | is.na(`1-owner vehicle`) , 0, 1)))
+
+print("After encoding and handling missing values:")
+Car_df_merged$`1-owner vehicle` %>% table()
+```
+
+## `Personal use only` column
+
+52575 nulls
+
+```{r}
+personal_null = Car_df_merged$`Personal use only` %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", personal_null)
+```
+
+```{r}
+Car_df_merged$`Personal use only` %>% table()
+```
+
+```{r}
+# Encoding personal use as 1, the rest 0
+Car_df_merged = Car_df_merged %>%
+  mutate(`Personal use only` = as.integer(ifelse(`Personal use only` == "No" | is.na(`Personal use only`) , 0, 1)))
+
+print("After encoding and handling missing values:")
+Car_df_merged$`Personal use only` %>% table()
+```
+
+## `Model` column
+
+The focus for this column is to match it with rates dataset to join them later
+
+```{r}
+model_nulls = Car_df_merged$Model %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", model_nulls)
+```
+
+## `Mileage` column
+
+```{r}
+
+mileage_nulls = Car_df_merged$Mileage %>%
+  is.na() %>%
+  sum()
+
+sprintf("Nulls: %d", mileage_nulls)
+```
+
+```{r}
+# Calculate the mean of the non-missing Mileage values
+mean_mileage = Car_df_merged$Mileage %>%
+  na.omit() %>% # Remove NAs to calculate mean
+  mean()
+
+sprintf("Mean Mileage: %.2f", mean_mileage)
+
+# Impute NA values in 'Mileage' with the calculated mean
+Car_df_merged = Car_df_merged %>%
+  mutate(Mileage = ifelse(is.na(Mileage), mean_mileage, Mileage))
+
+# Verify that there are no more nulls in the 'Mileage' column
+mileage_nulls_after_imputation = Car_df_merged$Mileage %>%
+  is.na() %>%
+  sum()
+sprintf("Nulls in Mileage after imputation: %d", mileage_nulls_after_imputation)
+```
+
+## `MPG` column
+
+```{r}
+Car_df_merged$MPG %>%
+  is.na() %>%
+  sum()
+```
+
+```{r}
+Car_df_merged$MPG %>%
+  unique()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  mutate(MPG_cleaned = case_when(
+    str_detect(MPG, "\\d+[-–-]\\d+") ~ (
+      as.numeric(str_extract(MPG, "\\d+(?=[-–-])")) +
+      as.numeric(str_extract(MPG, "(?<=[-–-])\\d+"))
+    ) / 2,
+    # Handles single numerical values (e.g., '30')
+    str_detect(MPG, "^\\d+$") ~ as.numeric(MPG),
+    TRUE ~ NA_real_
+  ))
+
+# Handle potential outliers that are parsed as very large numbers
+# A common upper limit for MPG is around 100-150 for non-electric cars, marking anything above this as NA
+Car_df_merged = Car_df_merged %>%
+  mutate(MPG_cleaned = ifelse(MPG_cleaned > 150, NA_real_, MPG_cleaned))
+
+print("Summary of MPG_cleaned after initial extraction and outlier handling:")
+Car_df_merged$MPG_cleaned %>% summary()
+
+na_count_mpg_cleaned = Car_df_merged$MPG_cleaned %>% is.na() %>% sum()
+sprintf("Number of NA values in MPG_cleaned after initial cleaning: %d", na_count_mpg_cleaned)
+```
+
+```{r}
+median_mpg = Car_df_merged$MPG_cleaned %>%
+  na.omit() %>%
+  median()
+
+sprintf("Median MPG for imputation: %.2f", median_mpg)
+
+Car_df_merged = Car_df_merged %>%
+  mutate(MPG_cleaned = ifelse(is.na(MPG_cleaned), median_mpg, MPG_cleaned))
+
+na_count_after_imputation = Car_df_merged$MPG_cleaned %>% is.na() %>% sum()
+sprintf("Number of NA values in MPG_cleaned after imputation: %d", na_count_after_imputation)
+
+print("Summary of MPG_cleaned after imputation:")
+Car_df_merged$MPG_cleaned %>% summary()
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  select(-MPG) %>%
+  rename(MPG = MPG_cleaned)
+
+print("First few rows of Car_df_merged with finalized MPG column:")
+Car_df_merged %>% select(MPG) %>% head()
+
+print("Columns in Car_df_merged after finalizing MPG:")
+Car_df_merged %>% colnames()
+```
+
+## Saving the dataset before heavy imputation
+
+```{r}
+write_csv(Car_df_merged, "car_df_merged.csv")
+```
+
+## Imputation
+
+### `Num_reviews`, `General_rate`, `Comfort`, `Interior design` `Performance`, `Value for the money`, `Exterior styling`, `Reliability` columns
+
+```{r}
+Car_df_merged = read_csv("https://raw.githubusercontent.com/NitoBoritto/R_New_York_Car_Project/main/car_df_merged.csv")
+```
+
+```{r}
+Car_df_merged = Car_df_merged %>%
+  mutate(
+    Num_of_reviews = ifelse(Num_of_reviews < 1, NA, Num_of_reviews),
+    General_rate = ifelse(General_rate < 0 | General_rate > 5, NA, General_rate),
+    Comfort = ifelse(Comfort < 0 | Comfort > 5, NA, Comfort),
+    `Interior design` = ifelse(`Interior design` < 0 | `Interior design` > 5, NA, `Interior design`),
+    Performance = ifelse(Performance < 0 | Performance > 5, NA, Performance),
+    `Value for the money` = ifelse(`Value for the money` < 0 | `Value for the money` > 5, NA, `Value for the money`),
+    `Exterior styling` = ifelse(`Exterior styling` < 0 | `Exterior styling` > 5, NA, `Exterior styling`),
+    Reliability = ifelse(Reliability < 0 | Reliability > 5, NA, Reliability)
+  )
+
+rating_cols = c("Num_of_reviews", "General_rate", "Comfort", "Interior design", "Performance", "Value for the money", "Exterior styling", "Reliability")
+
+cat("\n--- After re-standardization ---\n")
+for (col_name in rating_cols) {
+  cat(sprintf("\n--- Column: %s ---\n", col_name))
+
+  # Summary statistics
+  summary_stats = Car_df_merged %>% pull(!!sym(col_name)) %>% summary()
+  print(summary_stats)
+
+  # NA count
+  na_count = Car_df_merged %>% pull(!!sym(col_name)) %>% is.na() %>% sum()
+  cat(sprintf("Number of NA values: %d\n", na_count))
+}
+```
+
+```{r}
+predictor_cols = c("money", "Mileage", "Year", "Engine_Size", "Drivetrain",
+                   "Fuel_type", "Transmission", "Cylinder_Configuration",
+                   "Has_Turbo", "Has_GDI", "Has_DOHC", "Has_Supercharged")
+
+cat("\n--- Imputing Num_of_reviews ---\n")
+
+# Create a focused temporary DataFrame for Num_of_reviews imputation
+temp_df_num_reviews = Car_df_merged %>%
+  mutate(
+    Drivetrain = as.factor(Drivetrain),
+    Fuel_type = as.factor(Fuel_type),
+    Transmission = as.factor(Transmission),
+    Cylinder_Configuration = as.factor(Cylinder_Configuration)
+  ) %>%
+  select(
+    all_of(predictor_cols),
+    Num_of_reviews
+  )
+
+set.seed(42) # For reproducibility
+
+# Apply knnImputation to the focused DataFrame
+imputed_data_num_reviews = knnImputation(temp_df_num_reviews, k = 5, meth = "median")
+
+# Update Car_df_merged$Num_of_reviews
+Car_df_merged$Num_of_reviews = imputed_data_num_reviews$Num_of_reviews
+
+# Verify Num_of_reviews imputation
+na_count_num_of_reviews = Car_df_merged$Num_of_reviews %>% is.na() %>% sum()
+sprintf("Number of NA values in Num_of_reviews after KNN imputation: %d", na_count_num_of_reviews)
+
+cat("Summary statistics for Num_of_reviews after imputation:\n")
+Car_df_merged$Num_of_reviews %>% summary()
+```
+
+```{r}
+predictor_cols = c("money", "Mileage", "Year", "Engine_Size", "Drivetrain",
+                   "Fuel_type", "Transmission", "Cylinder_Configuration",
+                   "Has_Turbo", "Has_GDI", "Has_DOHC", "Has_Supercharged",
+                   "Num_of_reviews") # Include Num_of_reviews as a predictor
+
+cat("\n--- Imputing General_rate ---\n")
+
+# Create a focused temporary DataFrame for General_rate imputation
+temp_df_general_rate = Car_df_merged %>%
+  mutate(
+    Drivetrain = as.factor(Drivetrain),
+    Fuel_type = as.factor(Fuel_type),
+    Transmission = as.factor(Transmission),
+    Cylinder_Configuration = as.factor(Cylinder_Configuration)
+  ) %>%
+  select(
+    all_of(predictor_cols),
+    General_rate
+  )
+
+set.seed(42) # For reproducibility
+
+# Apply knnImputation to the focused DataFrame
+imputed_data_general_rate = knnImputation(temp_df_general_rate, k = 5, meth = "median")
+
+# Update Car_df_merged$General_rate
+Car_df_merged$General_rate = imputed_data_general_rate$General_rate
+
+# Verify General_rate imputation
+na_count_general_rate = Car_df_merged$General_rate %>%
+  is.na() %>%
+  sum()
+sprintf("Number of NA values in General_rate after KNN imputation: %d", na_count_general_rate)
+
+cat("Summary statistics for General_rate after imputation:\n")
+Car_df_merged$General_rate %>% summary()
+```
+
+```{r}
+write_csv(Car_df_merged, "car_df_merged.csv")
+```
+
+Due the massive amount of resources and time needed to use KNN imputation we decided to impute the rest with join multiple regression imputation
+
+```{r}
+Car_df_merged = read_csv("https://raw.githubusercontent.com/NitoBoritto/R_New_York_Car_Project/main/car_df_merged.csv")
+```
+
+```{r}
+rating_cols = c(
+  "Comfort",
+  "Interior design",
+  "Performance",
+  "Value for the money",
+  "Exterior styling",
+  "Reliability"
+)
+
+predictor_cols = c("money", "Mileage", "Year", "Engine_Size",
+                   "Drivetrain", "Fuel_type", "Transmission",
+                   "Cylinder_Configuration","Num_of_reviews", "General_rate")
+
+imp_vars <- c(predictor_cols, rating_cols)
+
+imp_df <- Car_df_merged[, imp_vars] # Subset data
+
+imp_df <- imp_df %>% # Convert categoricals
+  mutate(across(
+    c(Drivetrain, Fuel_type, Transmission, Cylinder_Configuration),
+    as.factor
+  ))
+
+meth <- make.method(imp_df)
+meth[rating_cols] <- "pmm"   # ratings get imputed using pmm (predective mean matching)
+# all others left as default by mice
+
+# Predictor matrix
+pred <- make.predictorMatrix(imp_df)
+diag(pred) <- 0              # so variables don't predict themselves
+
+
+set.seed(42)
+
+imp <- mice(
+  imp_df,
+  method = meth,
+  predictorMatrix = pred,
+  m = 5,
+  maxit = 5,
+  printFlag = TRUE
+)
+
+# ---- Use one completed dataset (ML / prediction) ----
+Car_df_merged[, rating_cols] <- complete(imp, 1)[, rating_cols]
+
+
+for (col in rating_cols) {
+  na_count_col = Car_df_merged %>% pull(!!sym(col)) %>% is.na() %>% sum()
+
+  cat(sprintf("Number of NA values in column after joint multiple imputation: %d\n", na_count_col))
+
+  print("Summary statistics for column after imputation:\n")
+  summary_stats = Car_df_merged %>% pull(!!sym(col)) %>% summary()
+  print(summary_stats)
+}
+
+total_nulls = Car_df_merged %>% is.na() %>% sum()
+
+if (total_nulls == 0) {
+  print("Dataframe fully cleaned!")
+}
+```
+
+```{r}
+write_csv(Car_df_merged, "car_df_merged.csv")
+```
+
+### Outlier detection & handling
+
+```{r}
+numerical_cols_for_outliers = c('money', 'Mileage', 'Year', 'Num_of_reviews', 'General_rate', 'Comfort', 'Interior design', 'Performance', 'Value for the money', 'Exterior styling', 'Reliability', 'Engine_Size')
+
+print("Numerical columns identified for outlier analysis:")
+print(numerical_cols_for_outliers)
+```
+
+```{r}
+outlier_bounds = list()
+
+for (col_name in numerical_cols_for_outliers) {
+  Q1 = Car_df_merged %>% pull(!!sym(col_name)) %>% quantile(0.25, na.rm = TRUE)
+  Q3 = Car_df_merged %>% pull(!!sym(col_name)) %>% quantile(0.75, na.rm = TRUE)
+  IQR = Q3 - Q1
+  lower_bound = Q1 - 1.5 * IQR
+  upper_bound = Q3 + 1.5 * IQR
+
+  outlier_bounds = append(outlier_bounds, list(
+    list(
+      "column" = col_name,
+      "Q1" = Q1,
+      "Q3" = Q3,
+      "IQR" = IQR,
+      "lower_bound" = lower_bound,
+      "upper_bound" = upper_bound
+    )
+  ))
+}
+
+print("Calculated outlier bounds for each numerical column:")
+for (bound_info in outlier_bounds) {
+  cat(sprintf(
+    "Column: %s, Q1: %.2f, Q3: %.2f, IQR: %.2f, Lower Bound: %.2f, Upper Bound: %.2f\n",
+    bound_info$column,
+    bound_info$Q1,
+    bound_info$Q3,
+    bound_info$IQR,
+    bound_info$lower_bound,
+    bound_info$upper_bound
+  ))
+}
+```
+
+#### Winsorization
+
+```{r}
+for (bound_info in outlier_bounds) {
+  col_name = bound_info$column
+  lower_bound = bound_info$lower_bound
+  upper_bound = bound_info$upper_bound
+
+  # Apply capping and flooring
+  Car_df_merged = Car_df_merged %>%
+    mutate(!!sym(col_name) := pmax(pmin(!!sym(col_name), upper_bound), lower_bound))
+}
+
+cat("\nSummary statistics after outlier handling (capping and flooring):\n")
+key_cols_to_summarize = c("money", "Mileage", "Engine_Size", "Year")
+for (col in key_cols_to_summarize) {
+  cat(sprintf("\n--- Column: %s ---\n", col))
+  Car_df_merged %>% pull(!!sym(col)) %>% summary() %>% print()
+}
+```
+
+```{r}
+write_csv(Car_df_merged, "car_df_merged.csv")
+```
+
+## Dataset after cleaning
+
+ONLY RUN THIS, NOTHING ELSE
+
+```{r}
+Car_df_merged = read_csv("https://raw.githubusercontent.com/NitoBoritto/R_New_York_Car_Project/main/car_df_merged.csv")
+```
+
+# EDA
+
+use `+ theme_nito` after every `ggplot()` to style it up
+
+```{r}
+head(Car_df_merged)
+```
+
+```{r}
+str(Car_df_merged)
+```
+
+```{r}
+dim(Car_df_merged)
+```
+
+```{r}
+colnames(Car_df_merged)
+```
+
+```{r}
+summary(Car_df_merged["money"])
+```
+
+## Uni-Variate Analysis
+
+### Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = money)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "black") +
+  labs(title = "Distribution of Car Prices",
+       x = "Price",
+       y = "Count")
+```
+
+```{r}
+ggplot(Car_df_merged, aes(y = money)) +
+  geom_boxplot(fill = "tomato") +
+  labs(title = "Price Outliers")
+```
+
+### Mileage
+
+```{r}
+theme_nito = theme(plot.title = element_text(hjust = 0.5, color = "darkgreen"),
+    text = element_text(family = "garamond", size = 14),
+	  rect = element_blank(),
+	  panel.grid = element_blank(),
+	  axis.line = element_line(color = "black"))
+
+
+ggplot(Car_df_merged, aes(x = Mileage)) +
+  geom_histogram(bins = 30, fill = "darkseagreen", color = "black") +
+  labs(title = "Mileage Distribution") +
+  theme_nito
+```
+
+### New vs Used
+
+```{r}
+ggplot(Car_df_merged, aes(x = `new&used`, fill = "slateblue")) +
+  geom_bar() +
+  labs(title = "New vs Used Cars",
+       x = "new & used",
+       y = "Count")
+```
+
+```{r}
+new_used_data <- Car_df_merged %>%
+  count(`new&used`) %>%
+  mutate(percentage = n / sum(n))
+
+ggplot(new_used_data, aes(x = "", y = percentage, fill = `new&used`)) +
+  geom_bar(width = 1, stat = "identity") +
+  coord_polar("y", start = 0) +
+  geom_text(aes(label = scales::percent(percentage)), position = position_stack(vjust = 0.5)) +
+  labs(title = "Distribution of New vs. Used Cars", fill = "Condition") +
+  theme_void() +
+  theme(plot.title = element_text(hjust = 0.5, color = "blue", size = 16, face = "bold"),
+        legend.position = "right") + theme_nito
+```
+
+### Fuel Type
+
+```{r}
+ggplot(Car_df_merged, aes(x = Fuel_type)) +
+  geom_bar(fill = "orange") +
+  labs(title = "Fuel Type Distribution") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Bivariate Analysis
+
+### Mileage vs Price
+
+```{r}
+colnames(Car_df_merged)
+```
+
+```{r}
+ggplot(Car_df_merged, aes(x = Mileage, y = money)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Mileage vs Price",
+       x = "Mileage",
+       y = "Price"
+       )
+```
+
+### Condition vs Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = `new&used`, y = money)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Price by Condition")
+```
+
+### Fuel Type vs Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = Fuel_type, y = money)) +
+  geom_boxplot(fill = "khaki") +
+  labs(title = "Fuel Type vs Price") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Transmission vs Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = Transmission, y = money)) +
+  geom_boxplot(fill = "lightpink") +
+  labs(title = "Transmission vs Price")
+```
+
+### Drivetrain Types vs Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = Drivetrain, y = money, fill = Drivetrain)) +
+  geom_boxplot() +
+  scale_fill_brewer(palette = "Greens") +
+  theme_minimal()+
+  labs(title = "Distribution of Drivetrain Types")
+```
+
+### Brand vs Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = reorder(brand, money, median), y = money)) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(title = "Price Distribution by Brand",
+       x = "Brand",
+       y = "Price")
+```
+
+## Important Binary Features
+
+### Accidents or Damage
+
+```{r}
+ggplot(Car_df_merged, aes(x = factor(`Accidents or damage`), y = money)) +
+  geom_boxplot(fill = "salmon", outlier.alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    title = "Impact of Accidents on Price",
+    x = "Accident History",
+    y = "Price"
+  )
+```
+
+### Clean Title
+
+```{r}
+ggplot(Car_df_merged, aes(x = factor(`Clean title`), y = money)) +
+  geom_boxplot(fill = "lightgreen", outlier.alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    title = "Clean Title vs Price",
+    x = "Title Status",
+    y = "Price"
+  )
+```
+
+### One Owner
+
+```{r}
+ggplot(Car_df_merged, aes(x = factor(`1-owner vehicle`), y = money)) +
+  geom_boxplot(fill = "lightgray", outlier.alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    title = "One Owner vs Price",
+    x = "Ownership Status",
+    y = "Price"
+  )
+```
+
+### Year vs Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = Year, y = money)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE, color = "blue") +
+  labs(title = "Year vs Price")
+```
+
+## After Using Log
+
+### Log Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = log(money))) +
+  geom_histogram(bins = 30, fill = "purple") +
+  labs(title = "Log-Transformed Price Distribution")
+```
+
+### Log Mileage
+
+```{r}
+ggplot(Car_df_merged, aes(x = log(Mileage))) +
+  geom_histogram(bins = 30, fill = "darkseagreen", color = "black") +
+  labs(title = "Mileage Distribution")
+```
+
+### Log Mileage Vs Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = log(Mileage), y = log(money))) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm") +
+  labs(title = "Log Mileage vs Log Price")
+```
+
+### new.used vs log Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = `new&used`, y = log(money))) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Log Price by Condition")
+```
+
+### Fuel Type Vs Log Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = Fuel_type, y = log(money))) +
+  geom_boxplot(fill = "khaki") +
+  labs(title = "Fuel Type vs Price") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Transmission Vs Log Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = Transmission, y = log(money))) +
+  geom_boxplot(fill = "lightpink") +
+  labs(title = "Transmission vs Log Price")
+```
+
+### Drivertrain Types Vs Log Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = Drivetrain, y = log(money), fill = Drivetrain)) +
+  geom_boxplot() +
+  scale_fill_brewer(palette = "Greens") +
+  theme_minimal()+
+  labs(title = "Distribution of Drivetrain Types")
+```
+
+### Brand Vs Log Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = reorder(brand, money, median), y = log(money))) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(title = "Price Distribution by Brand",
+       x = "Brand",
+       y = "Price")
+```
+
+### Accidents or Damage
+
+```{r}
+ggplot(Car_df_merged, aes(x = factor(`Accidents or damage`), y = log(money))) +
+  geom_boxplot(fill = "salmon", outlier.alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    title = "Impact of Accidents on Price",
+    x = "Accident History",
+    y = "Price"
+  )
+```
+
+### Clean Title
+
+```{r}
+ggplot(Car_df_merged, aes(x = factor(`Clean title`), y = log(money))) +
+  geom_boxplot(fill = "lightgreen", outlier.alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    title = "Clean Title vs Price",
+    x = "Title Status",
+    y = "Price"
+  )
+```
+
+### One Owner
+
+```{r}
+ggplot(Car_df_merged, aes(x = factor(`1-owner vehicle`), y = log(money))) +
+  geom_boxplot(fill = "lightgray", outlier.alpha = 0.3) +
+  theme_minimal() +
+  labs(
+    title = "One Owner vs Price",
+    x = "Ownership Status",
+    y = "Price"
+  )
+```
+
+### Year Vs Price
+
+```{r}
+ggplot(Car_df_merged, aes(x = Year, y = log(money))) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(se = FALSE, color = "blue") +
+  labs(title = "Year vs Price")
+```
+
+## Correltion Matrix
+
+### Correlation Matrix between Year, Price, and Mileage
+
+```{r}
+corr_matrix <- cor(Car_df_merged[, c("Year", "money", "Mileage")], use = "complete.obs")
+
+melted_corr <- melt(corr_matrix)
+
+ggplot(data = melted_corr, aes(x=Var1, y=Var2, fill=value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), color = "white") +
+  scale_fill_gradient2(low = "#063970", high = "#f5d142", mid = "#7a7d7d",
+                       midpoint = 0, limit = c(-1,1)) +
+  theme_minimal() +
+  labs(title = "Distribution of Vehicle Drivetrains",x = "", y = "")
+```
+
+### Correlation Matrix all Data
+
+```{r}
+target_cols <- c("money", "Mileage", "Year", "MPG", "Engine_Size",
+                 "Num_of_reviews", "General_rate", "Comfort",
+                 "Interior design", "Performance", "Value for the money",
+                 "Exterior styling", "Reliability")
+
+full_corr <- cor(Car_df_merged[, target_cols], use = "complete.obs")
+
+
+ggcorrplot(full_corr,
+           hc.order = TRUE,
+           type = "lower",
+           lab = TRUE,
+           lab_size = 2.5,
+           method = "square",
+           colors = c("#d73027", "white", "#1a9850"), # Red (negative) to Green (positive)
+           title = "Full Vehicle Data Correlation Analysis",
+           outline.col = "white") +
+  theme(
+    axis.text.x = element_text(size = 8, angle = 45, vjust = 1, hjust = 1),
+    axis.text.y = element_text(size = 8),
+    plot.title = element_text(size = 12, face = "bold", hjust = 0.5)
+  )
+```
+
+## Relationship
+
+### Relationship between Manufacturing Year, Price, and Mileage
+
+```{r}
+cols_to_plot <- c("Year", "money", "Mileage")
+
+ggpairs(Car_df_merged[, cols_to_plot]) +
+  theme_bw() +
+  labs(
+    title = "Vehicle Attribute Pair Plot",
+    subtitle = "Relationship between Manufacturing Year, Price, and Mileage"
+  ) +
+  theme(plot.title = element_text(face = "bold", size = 14))
+```
+
+# Regression
+
+## Simple Linear Regression
+
+```{r}
+money_Mileage_model <- lm(money ~ Mileage, data = Car_df_merged)
+```
+
+```{r}
+summary(money_Mileage_model)
+```
+
+```{r}
+autoplot(money_Mileage_model,which=1:3,nrow=3,ncol=1)
+```
+
+```{r}
+money_Mileage_model_logged <- lm(log(money) ~ Mileage, data = Car_df_merged)
+summary(money_Mileage_model_logged)
+```
+
+## Multiple Regression
+
+### Dummy Variables
+
+```{r}
+Car_df_merged <- dummy_cols(Car_df_merged, select_columns = c("brand", "Transmission", "Fuel_type"),
+remove_first_dummy = TRUE,
+remove_selected_columns = TRUE)
+```
+
+```{r}
+# Create the tibble by removing the target variable (money)
+explanatory_data <- Car_df_merged %>%
+  select(-money)
+print(explanatory_data)
+```
+
+```{r}
+explanatory_data_numeric <- Car_df_merged %>%
+  select(where(is.numeric)) %>%  # Keeps only numeric columns
+  select(-money)                 # Removes the target variable
+
+# Check which columns were included
+colnames(explanatory_data_numeric)
+```
+
+```{r}
+ggplot(data = Car_df_merged, aes(x = money)) +
+  geom_histogram()
+```
+
+### Scaling the Data (using Standardization Method)
+
+```{r}
+# 1. Prepare the data by selecting relevant columns
+# We use drop_na() because most models will fail if there are missing values
+model_ready_data <- Car_df_merged %>%
+  select(money, Mileage, Year, Engine_Size, MPG,
+         starts_with("brand_"), starts_with("Transmission_"),`Accidents or damage`) %>%
+  drop_na()
+
+# 2. Scale only the continuous predictors
+# This centers (mean=0) and scales (SD=1) the numbers
+Car_df_final <- model_ready_data %>%
+  mutate(across(c(Mileage, Year, Engine_Size, MPG), ~ as.vector(scale(.))))
+
+# View the result
+head(Car_df_final)
+```
+
+### Check the Scaling
+
+```{r}
+# This will show the mean and SD for your numeric columns
+Car_df_final %>%
+  summarise(across(c(Mileage, Year, Engine_Size, MPG),
+                   list(mean = ~round(mean(.), 2),
+                        sd = ~round(sd(.), 2))))
+```
+
+# Model
+
+## Model –\> (1)
+
+```{r}
+# Build a model with all potential predictors
+# 'money' is the target, all others are explanatory
+model_1 <- lm(money ~ Mileage  +Year + Engine_Size + MPG +  brand_Toyota + brand_BMW + Transmission_Variable+`Accidents or damage`, data = Car_df_final)
+
+# View the full statistical report
+summary(model_1)
+```
+
+#### Check Multi Correinality
+
+```{r}
+# Calculate Variance Inflation Factor (VIF)
+vif(model_1)
+```
+
+```{r}
+autoplot(model_1,which=1:3,nrow=3,ncol=1)
+```
+
+## Model –\> (2) (Transformation + Interaction)
+
+```{r}
+# 1. Transform Raw Data
+model_ready <- Car_df_merged %>%
+  # Ensure these columns exist
+  drop_na(money, Mileage, Year, Engine_Size, MPG) %>%
+  mutate(
+    log_money = log(money),
+    log_mileage = log(Mileage + 1),
+    log_engine = log(Engine_Size + 0.1)
+  )
+
+# 2. Scale the Continuous Features
+final_data <- model_ready %>%
+  # FIXED: Removed Age and Age_Sq from the scaling list
+  mutate(across(c(log_mileage, log_engine, MPG),
+                ~ as.vector(scale(.)))) %>%
+  # FIXED: Removed the extra closing parenthesis
+  rename_with(~make.names(.))
+
+# 3. Fit Model with Interactions
+
+model_final <- lm(log_money ~
+                    log_mileage * brand_BMW +
+                    brand_Toyota +
+                    log_engine +
+                    Transmission_Variable +
+                    MPG,
+                  data = final_data)
+
+# 4. View results
+summary(model_final)
+```
+
+## Model –\> (3) (Feature Engineering)
+
+```{r}
+# 1. Transform Raw Data
+model_ready <- Car_df_merged %>%
+
+  drop_na(money, Mileage, Year, Engine_Size, MPG) %>%
+  mutate(
+    log_money = log(money),
+    log_mileage = log(Mileage + 1),
+    # Use + 0.1 so that Electric cars (0.0 engine) don't become -Inf
+    log_engine = log(Engine_Size + 0.1),
+    Age = 2025 - Year, Age_Sq = Age^2 )
+
+# 2. Scale the Continuous Features
+final_data <- model_ready %>%
+  mutate(across(c(log_mileage, log_engine, Age, Age_Sq, MPG),
+                ~ as.vector(scale(.)))) %>%
+  rename_with(~make.names(.))
+
+# 3. Fit Model with Interactions
+
+model_final <- lm(log_money ~ log_mileage * brand_BMW + brand_Toyota + log_engine +Transmission_Variable+ Age_Sq + MPG, data = final_data)
+
+
+# 4. View results
+summary(model_final)
+```
+
+```{r}
+# Calculate Variance Inflation Factor (VIF)
+vif(model_final)
+```
+
+```{r}
+autoplot(model_1,which=1:3,nrow=3,ncol=1)
+```
+
+## Model –\> (4) (Random Forest)
+
+```{r}
+# 1. Prepare Data and Create Age
+rf_data <- Car_df_merged %>%
+  distinct() %>% # Prevent record leakage as no car in be in both trianing and test data
+  mutate(
+    Age = 2025 - Year # Create Age from Year
+  ) %>%
+  select(money, Mileage, Age, Engine_Size, MPG,
+         starts_with("brand_"), starts_with("Transmission_")) %>%
+  drop_na()
+
+# Clean column names
+names(rf_data) <- make.names(names(rf_data))
+
+# 2. Split Data BEFORE scaling
+set.seed(123)
+trainIndex <- createDataPartition(rf_data$money, p = .8, list = FALSE)
+train_raw <- rf_data[trainIndex, ]
+test_raw  <- rf_data[-trainIndex, ]
+
+# 3. Scale Continuous Variables (using Train parameters for Test)
+
+cont_cols <- c("Mileage", "Age", "Engine_Size", "MPG")
+
+# Train Scaling
+train_data <- train_raw %>%
+  mutate(
+    money = log(money), # Log target for better RF performance
+    across(all_of(cont_cols), ~ as.vector(scale(.)))
+  )
+
+# Extract scaling parameters to prevent leakage
+means <- colMeans(train_raw[, cont_cols])
+sds   <- apply(train_raw[, cont_cols], 2, sd)
+
+# Test Scaling (Applying train parameters)
+test_data <- test_raw %>%
+  mutate(
+    money = log(money),
+    Mileage = (Mileage - means["Mileage"]) / sds["Mileage"],
+    Age = (Age - means["Age"]) / sds["Age"],
+    Engine_Size = (Engine_Size - means["Engine_Size"]) / sds["Engine_Size"],
+    MPG = (MPG - means["MPG"]) / sds["MPG"]
+  )
+
+# 4. Build Model
+rf_model <- randomForest(money ~ ., data = train_data, ntree = 100, importance = TRUE)
+print(rf_model)
+```
+
+# Review model
+
+```{r}
+varImpPlot(rf_model, main = "Variable Importance: Is Age a Top Predictor?")
+```
+
+## RMSE & Model Evaluation
+
+```{r}
+# 1. Predict using the Test set (results will be in log scale)
+predictions_log <- predict(rf_model, test_data)
+
+# 2. Transform values from Log scale back to actual Dollars using exp()
+predictions_dollars <- exp(predictions_log)
+actual_dollars <- exp(test_data$money)
+
+# 3. Calculate Root Mean Squared Error (RMSE) in dollars
+rmse_dollars <- sqrt(mean((actual_dollars - predictions_dollars)^2))
+
+# 4. Calculate Mean Absolute Error (MAE) in dollars
+# This tells you: On average, how many dollars is the model off by?
+mae_dollars <- mean(abs(actual_dollars - predictions_dollars))
+
+# Print the real-world error metrics
+cat("--- Real Error Metrics (In Dollars) ---\n")
+cat("Average Error (MAE): $", round(mae_dollars, 2), "\n")
+cat("Root Mean Squared Error (RMSE): $", round(rmse_dollars, 2), "\n")
+
+# 5. Create a plot to compare Actual vs. Predicted prices
+plot_data <- data.frame(Actual = actual_dollars, Predicted = predictions_dollars)
+
+ggplot(plot_data, aes(x = Actual, y = Predicted)) +
+  geom_point(alpha = 0.3, color = "blue") +
+  # Add a 45-degree dashed red line representing perfect predictions
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  scale_x_continuous(labels = label_dollar()) +
+  scale_y_continuous(labels = label_dollar()) +
+  labs(
+    title = "Actual vs. Predicted Car Prices",
+    subtitle = paste("Mean Absolute Error: $", round(mae_dollars, 2)),
+    x = "Actual Price ($)",
+    y = "Predicted Price ($)"
+  ) +
+  theme_minimal()
+```
+
+# Simulation
+
+## Checking structure
+
+```{r}
+str(Car_df_merged)
+```
+
+## Numerical simulation
+
+```{r}
+set.seed(42)
+
+Car_df_sampled = Car_df_merged %>%
+  sample_n(50000)
+
+print("Dimensions of the sampled DataFrame (Car_df_sampled):")
+Car_df_sampled %>% dim()
+
+print("First few rows of Car_df_sampled:")
+Car_df_sampled %>% head()
+```
+
+```{r}
+set.seed(42)
+
+Sim_Newmerc_Sampled_list = list()
+num_samples_sampled = nrow(Car_df_sampled) # Use the number of rows from the sampled data
+
+# Helper function to ensure values are within realistic/original bounds after inverse transformation
+clamp = function(x, min_val, max_val) {
+  pmax(pmin(x, max_val), min_val)
+}
+
+# 1. money: Log transformation
+original_money_sampled = Car_df_sampled$money
+transformed_money_sampled = log(original_money_sampled)
+mean_money_sampled = mean(transformed_money_sampled)
+sd_money_sampled = sd(transformed_money_sampled)
+sim_transformed_money_sampled = rnorm(num_samples_sampled, mean = mean_money_sampled, sd = sd_money_sampled)
+sim_money_sampled = exp(sim_transformed_money_sampled)
+Sim_Newmerc_Sampled_list$money = clamp(sim_money_sampled, min(original_money_sampled), max(original_money_sampled))
+
+# 2. Mileage: Log(x+1) transformation
+original_mileage_sampled = Car_df_sampled$Mileage
+transformed_mileage_sampled = log(original_mileage_sampled + 1)
+mean_mileage_sampled = mean(transformed_mileage_sampled)
+sd_mileage_sampled = sd(transformed_mileage_sampled)
+sim_transformed_mileage_sampled = rnorm(num_samples_sampled, mean = mean_mileage_sampled, sd = sd_mileage_sampled)
+sim_mileage_sampled = exp(sim_transformed_mileage_sampled) - 1
+Sim_Newmerc_Sampled_list$Mileage = clamp(sim_mileage_sampled, min(original_mileage_sampled), max(original_mileage_sampled))
+
+# 3. Year: No transformation
+original_year_sampled = Car_df_sampled$Year
+mean_year_sampled = mean(original_year_sampled)
+sd_year_sampled = sd(original_year_sampled)
+sim_year_sampled = rnorm(num_samples_sampled, mean = mean_year_sampled, sd = sd_year_sampled)
+sim_year_sampled = round(clamp(sim_year_sampled, min(original_year_sampled), max(original_year_sampled)))
+Sim_Newmerc_Sampled_list$Year = sim_year_sampled
+
+# 4. MPG: Log(x+1) transformation
+original_mpg_sampled = Car_df_sampled$MPG
+transformed_mpg_sampled = log(original_mpg_sampled + 1)
+mean_mpg_sampled = mean(transformed_mpg_sampled)
+sd_mpg_sampled = sd(transformed_mpg_sampled)
+sim_transformed_mpg_sampled = rnorm(num_samples_sampled, mean = mean_mpg_sampled, sd = sd_mpg_sampled)
+sim_mpg_sampled = exp(sim_transformed_mpg_sampled) - 1
+Sim_Newmerc_Sampled_list$MPG = clamp(sim_mpg_sampled, min(original_mpg_sampled), max(original_mpg_sampled))
+
+# 5. Num_of_reviews: Log(x+1) transformation
+original_num_reviews_sampled = Car_df_sampled$Num_of_reviews
+transformed_num_reviews_sampled = log(original_num_reviews_sampled + 1)
+mean_num_reviews_sampled = mean(transformed_num_reviews_sampled)
+sd_num_reviews_sampled = sd(transformed_num_reviews_sampled)
+sim_transformed_num_reviews_sampled = rnorm(num_samples_sampled, mean = mean_num_reviews_sampled, sd = sd_num_reviews_sampled)
+sim_num_reviews_sampled = exp(sim_transformed_num_reviews_sampled) - 1
+sim_num_reviews_sampled = round(clamp(sim_num_reviews_sampled, min(original_num_reviews_sampled), max(original_num_reviews_sampled)))
+Sim_Newmerc_Sampled_list$Num_of_reviews = sim_num_reviews_sampled
+
+# 6. Rating columns: No transformation
+rating_cols_no_transform = c('General_rate', 'Comfort', 'Interior design', 'Performance', 'Value for the money', 'Exterior styling', 'Reliability')
+for (col in rating_cols_no_transform) {
+  original_data_sampled = Car_df_sampled[[col]]
+  mean_data_sampled = mean(original_data_sampled)
+  sd_data_sampled = sd(original_data_sampled)
+  sim_data_sampled = rnorm(num_samples_sampled, mean = mean_data_sampled, sd = sd_data_sampled)
+  Sim_Newmerc_Sampled_list[[col]] = round(clamp(sim_data_sampled, min(original_data_sampled), max(original_data_sampled)), 1)
+}
+
+# 7. Engine_Size: Log(x+0.1) transformation
+original_engine_size_sampled = Car_df_sampled$Engine_Size
+transformed_engine_size_sampled = log(original_engine_size_sampled + 0.1)
+mean_engine_size_sampled = mean(transformed_engine_size_sampled)
+sd_engine_size_sampled = sd(transformed_engine_size_sampled)
+sim_transformed_engine_size_sampled = rnorm(num_samples_sampled, mean = mean_engine_size_sampled, sd = sd_engine_size_sampled)
+sim_engine_size_sampled = exp(sim_transformed_engine_size_sampled) - 0.1
+Sim_Newmerc_Sampled_list$Engine_Size = clamp(sim_engine_size_sampled, min(original_engine_size_sampled), max(original_engine_size_sampled))
+
+# Combine into a data frame
+Sim_Newmerc_Sampled = as.data.frame(Sim_Newmerc_Sampled_list)
+
+cat("Sim_Newmerc_Sampled DataFrame created successfully. First few rows:\n")
+print(head(Sim_Newmerc_Sampled))
+
+cat("Summary statistics for Sim_Newmerc_Sampled:\n")
+print(summary(Sim_Newmerc_Sampled))
+```
+
+```{r}
+if (!exists("theme_nito")) {
+  theme_nito = theme(plot.title = element_text(hjust = 0.5, color = "blue"),
+      text = element_text(family = "sans", size = 14),
+      rect = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_line(color = "black"))
+}
+
+key_cols_for_comparison_sampled = c('money', 'Mileage', 'MPG', 'Engine_Size', 'Num_of_reviews')
+
+plot_list_sampled = list()
+
+for (col_name in key_cols_for_comparison_sampled) {
+  # Create a combined dataframe for plotting
+  df_combined_sampled = data.frame(
+    value = c(Car_df_sampled[[col_name]], Sim_Newmerc_Sampled[[col_name]]),
+    source = factor(c(rep("Original Sampled", nrow(Car_df_sampled)), rep("Simulated Sampled", nrow(Sim_Newmerc_Sampled))))
+  )
+
+  # Generate density plot
+  p_sampled = ggplot(df_combined_sampled, aes(x = value, fill = source, color = source)) +
+    geom_density(alpha = 0.5) +
+    labs(
+      title = paste("Distribution of", col_name, "(Original Sampled vs. Simulated Sampled)"),
+      x = col_name,
+      y = "Density",
+      fill = "Data Source",
+      color = "Data Source"
+    ) +
+    theme_nito +
+    theme(legend.position = "top")
+
+  plot_list_sampled[[col_name]] = p_sampled
+}
+
+# Arrange plots in a grid
+grid.arrange(grobs = plot_list_sampled, ncol = 2,
+             top = textGrob("Comparison of Original Sampled vs. Simulated Sampled Numerical Distributions",
+                            gp = gpar(fontsize = 16, col = "darkgreen", fontface = "bold")))
+```
+
+## Categorical simulation
+
+```{r}
+categorical_cols_for_simulation_sampled = c('new&used', 'Drivetrain', 'brand', 'Fuel_type', 'Transmission', 'Cylinder_Configuration')
+
+Simulated_Categorical_Data_Sampled = data.frame(row.names = 1:nrow(Car_df_sampled))
+
+for (col_name in categorical_cols_for_simulation_sampled) {
+  cat(sprintf("\n--- Analysis and Simulation for: %s (Sampled Data) ---\n", col_name))
+
+  # 1. Analyze Original Sampled Distribution (Frequency Table)
+  cat("Original Sampled Frequency Table:\n")
+  original_table_sampled = table(Car_df_sampled[[col_name]])
+  print(original_table_sampled)
+  cat("\nOriginal Sampled Proportion Table:\n")
+  original_prop_table_sampled = prop.table(original_table_sampled)
+  print(original_prop_table_sampled)
+
+  # 2. Simulate New Data based on proportions from sampled data
+  set.seed(42) # For reproducibility of simulation
+  simulated_values_sampled = sample(
+    x = names(original_prop_table_sampled),
+    size = nrow(Car_df_sampled),
+    replace = TRUE,
+    prob = original_prop_table_sampled
+  )
+  Simulated_Categorical_Data_Sampled[[col_name]] = simulated_values_sampled
+
+  # 3. Analyze Simulated Distribution (Frequency Table)
+  cat("\nSimulated Sampled Frequency Table:\n")
+  simulated_table_sampled = table(Simulated_Categorical_Data_Sampled[[col_name]])
+  print(simulated_table_sampled)
+  cat("\nSimulated Sampled Proportion Table:\n")
+  simulated_prop_table_sampled = prop.table(simulated_table_sampled)
+  print(simulated_prop_table_sampled)
+  cat("\n") # Add a newline for better separation between columns
+}
+
+cat("\n--- First few rows of the complete Simulated_Categorical_Data_Sampled DataFrame ---\n")
+print(head(Simulated_Categorical_Data_Sampled))
+
+cat("\n--- Structure of the complete Simulated_Categorical_Data_Sampled DataFrame ---\n")
+str(Simulated_Categorical_Data_Sampled)
+```
+
+```{r}
+if (!exists("theme_nito")) {
+  theme_nito = theme(plot.title = element_text(hjust = 0.5, color = "blue"),
+      text = element_text(family = "sans", size = 14),
+      rect = element_blank(),
+      panel.grid = element_blank(),
+      axis.line = element_line(color = "black"))
+}
+
+categorical_cols_for_comparison_sampled = c('new&used', 'Drivetrain', 'brand', 'Fuel_type', 'Transmission', 'Cylinder_Configuration')
+
+plot_list_sampled_categorical = list()
+
+for (col_name in categorical_cols_for_comparison_sampled) {
+  # Create combined dataframe for plotting
+  df_combined_sampled_cat = bind_rows(
+    Car_df_sampled %>% select(!!sym(col_name)) %>% mutate(source = "Original Sampled"),
+    Simulated_Categorical_Data_Sampled %>% select(!!sym(col_name)) %>% mutate(source = "Simulated Sampled")
+  ) %>%
+  # Ensure the category column is a factor for consistent plotting
+  mutate(!!sym(col_name) := as.factor(!!sym(col_name)))
+
+  # Calculate proportions
+  df_proportions_sampled_cat = df_combined_sampled_cat %>%
+    group_by(source, !!sym(col_name)) %>%
+    summarise(count = n(), .groups = 'drop') %>%
+    group_by(source) %>%
+    mutate(proportion = count / sum(count))
+
+  # Generate bar plot
+  p_sampled_cat = ggplot(df_proportions_sampled_cat, aes(x = !!sym(col_name), y = proportion, fill = source)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(
+      title = paste("Distribution of", col_name),
+      x = col_name,
+      y = "Proportion",
+      fill = "Data Source"
+    ) +
+    theme_nito +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  plot_list_sampled_categorical[[col_name]] = p_sampled_cat
+}
+
+# Arrange plots in a grid
+num_plots_cat = length(plot_list_sampled_categorical)
+num_cols_cat = min(3, ceiling(num_plots_cat / 2)) # Max 3 columns
+
+grid.arrange(grobs = plot_list_sampled_categorical, ncol = num_cols_cat,
+             top = textGrob("Comparison of Original Sampled vs. Simulated Sampled Categorical Distributions",
+                            gp = gpar(fontsize = 16, col = "darkgreen", fontface = "bold")))
+```
+
+```{r}
+Simulated_Data_Sampled = cbind(Sim_Newmerc_Sampled, Simulated_Categorical_Data_Sampled)
+
+cat("\n--- First few rows of the complete Simulated_Data_Sampled DataFrame ---\n")
+print(head(Simulated_Data_Sampled))
+
+cat("\n--- Structure of the complete Simulated_Data_Sampled DataFrame ---\n")
+str(Simulated_Data_Sampled)
+```

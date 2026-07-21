@@ -1,6 +1,6 @@
 <div align="center">
 
-![NYC Car Market — Metro Fleet](nyc_readme_header.svg)
+![NYC Car Market — Metro Fleet](Assets/nyc_readme_header.svg)
 
 **174,858 raw listings. One night-lit city. A car price, delivered by AI in under a second.**
 
@@ -12,7 +12,7 @@
 
 <br>
 
-![NYC Car Market — animated landing page](nyc_landing_demo.gif)
+![NYC Car Market — animated landing page](Assets/nyc_landing_demo.gif)
 
 
 
@@ -24,7 +24,7 @@
 
 <br>
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 <div align="center">
 
@@ -39,7 +39,7 @@
 
 </div>
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## 📍 Overview
 
@@ -53,7 +53,7 @@ Two things had to be true for that to work:
 >
 > 🎛️ **The dashboard had to be trustworthy, not just pretty.** The AI Price Predictor validates its own accuracy live, on every launch, and physically cannot accept an input the model wasn't trained to handle — see the reliability breakdown in the AI Price Predictor section below.
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## ✨ The Dashboard — "Metro Fleet"
 
@@ -109,14 +109,14 @@ This page was built to be the most *reliable* part of the entire project — not
 
 The valuation itself doesn't live in a plain number box. It lives inside a **working taxi meter** — LED-red glowing digits inside a black meter housing — because a generic input field didn't feel like it belonged in this dashboard.
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## 🔬 The Data Science Pipeline
 
 ### Data
 Two raw sources — a New York City used-car listings scrape and a companion ratings dataset — merged, deduplicated, and engineered into one analytical table.
 
-**174,858 rows × 31 engineered features**, sourced from [`New_York_cars.csv`](https://github.com/NitoBoritto/R_New_York_Car_Project) and [`Car_Rates.csv`](https://github.com/NitoBoritto/R_New_York_Car_Project).
+**174,858 rows × 31 engineered features**, sourced from [`New_York_cars.csv`](https://github.com/NitoBoritto/R_New_York_Car_Project/blob/main/Data/Row/New_York_cars.csv) and [`Car_Rates.csv`](https://github.com/NitoBoritto/R_New_York_Car_Project/blob/main/Data/Row/Car_Rates.csv).
 
 <br>
 
@@ -183,7 +183,7 @@ Fifty trees is the efficient stopping point — pushing to 100 trees doubles the
 
 </details>
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## 🛠️ Tech Stack
 
@@ -198,25 +198,33 @@ Fifty trees is the efficient stopping point — pushing to 100 trees doubles the
 | Dashboard visualization | `plotly` |
 | Design | Hand-written CSS design system, inline SVG — zero external image/video assets |
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## 📂 Project Structure
 
 ```
 R_New_York_Car_Project/
-├── New_York_cars.csv              # Raw scraped listings
-├── Car_Rates.csv                  # Companion ratings dataset
-├── car_df_merged.csv              # Cleaned, merged, feature-engineered dataset
-├── R_New_York_Car_Project.ipynb   # Full analysis notebook (cleaning → EDA → modeling → simulation)
-├── nyc_car_market_dashboard.R     # The Metro Fleet Shiny dashboard
-├── nyc_landing_demo.gif           # Landing page demo (this README)
-├── nyc_readme_header.svg          # Animated README header (glowing title + driving taxi)
-├── nyc_readme_footer.svg          # Animated README footer
-├── nyc_readme_divider.png         # README section divider graphic
+├── Archive/
+│   └── R_New_York_Car_Project.ipynb   # Full analysis notebook (cleaning → EDA → modeling → simulation)
+├── Assets/
+│   ├── nyc_landing_demo.gif           # Landing page demo (this README)
+│   ├── nyc_readme_banner.png          # README banner graphic
+│   ├── nyc_readme_divider.png         # README section divider graphic
+│   ├── nyc_readme_footer.svg          # Animated README footer
+│   └── nyc_readme_header.svg          # Animated README header (glowing title + driving taxi)
+├── Data/
+│   ├── Processed/
+│   │   └── car_df_merged.csv          # Cleaned, merged, feature-engineered dataset
+│   └── Row/
+│       ├── Car_Rates.csv              # Companion ratings dataset
+│       └── New_York_cars.csv          # Raw scraped listings
+├── Scripts/
+│   ├── Dashboard.R                    # The Metro Fleet Shiny dashboard
+│   └── R_New_York_Car_Project.qmd     # Quarto version of the analysis
 └── README.md
 ```
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## 🚀 Getting Started
 
@@ -236,16 +244,16 @@ install.packages(c(
 ### Run the dashboard
 
 ```r
-shiny::runApp("nyc_car_market_dashboard.R")
+shiny::runApp("Scripts/Dashboard.R")
 ```
 
 > ⏱️ **First launch takes 30–40 seconds.** The AI Price Predictor's model trains fresh every time the app starts — it isn't a stale file loaded from disk. That's a deliberate trade: a few extra seconds of loading in exchange for a model that proves its own accuracy on every single run, on your most important page.
 
 ### Explore the analysis
 
-Open `R_New_York_Car_Project.ipynb` in Jupyter (R kernel) or RStudio to walk through the full cleaning → EDA → modeling → simulation pipeline.
+Open `Archive/R_New_York_Car_Project.ipynb` in Jupyter (R kernel) or RStudio to walk through the full cleaning → EDA → modeling → simulation pipeline.
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## 📈 Model Performance
 
@@ -263,7 +271,7 @@ The deployed AI Price Predictor reports its own accuracy live, computed via out-
 
 *(The 93.1%-variance research model in the notebook was trained offline on the full cleaned dataset with 100 trees. The dashboard's live model is a separately tuned, self-validating instance built for interactive deployment — see "Why 50 trees, specifically" above for the benchmark behind that choice.)*
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## 👥 Team
 
@@ -278,7 +286,7 @@ Built by a team of four for a university data science course — statistical rig
 
 
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 ## 🗺️ Roadmap
 
@@ -287,11 +295,11 @@ Built by a team of four for a university data science course — statistical rig
 - [ ] Multi-year forecasting beyond the current partial-dependence view
 - [ ] One-click PDF valuation report export from the AI Predictor
 
-![divider](nyc_readme_divider.png)
+![divider](Assets/nyc_readme_divider.png)
 
 
 <div align="center">
 
-![NYC Car Market — footer](nyc_readme_footer.svg)
+![NYC Car Market — footer](Assets/nyc_readme_footer.svg)
 
 </div>
